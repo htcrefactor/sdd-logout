@@ -1,5 +1,7 @@
 # LOGOUT
 
+The `htcrefactor/sdd-logout` project.
+
 Korean-first running app for iPhone with an optional Apple Watch companion. Native SwiftUI, Core Location, HealthKit and a shared recording core.
 
 This repository is under active implementation. The current increment records phone-only runs, supplies Watch-owned workout services and controls, and stores history locally. AI coaching, backend accounts, StoreKit subscriptions and adaptive training plans are not enabled yet. See [implementation evidence and remaining work](Docs/IMPLEMENTATION-STATUS.md) before testing or releasing.
