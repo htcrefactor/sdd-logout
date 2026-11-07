@@ -1,6 +1,6 @@
 # LOGOUT production implementation plan
 
-Planning baseline: November 7, 2026, Asia/Seoul. Status: production scope and engineering plan; native implementation has not begun beyond project setup.
+Planning baseline: November 7, 2026, Asia/Seoul. Status: the first native production implementation increment is in place for iPhone and Apple Watch. See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for implemented capabilities, verified checks, pending device evidence and remaining release work. The app is not yet a finished product or App Store release candidate.
 
 LOGOUT is a Korean-first iPhone running app with optional Apple Watch measurements and a conversational AI coach. It combines dependable outdoor recording, thoughtful coach personas, structured workouts and adaptive multiweek plans. Tracking must remain useful when the network, AI, a permission or an accessory is unavailable. A successful build is not evidence of reliable outdoor operation.
 
@@ -32,7 +32,7 @@ Free tracking remains available without an account or subscription. AI requires 
 
 The web prototype has verified onboarding, four-tab navigation, simulated runs, saved local demo history, goal-oriented coaches, Activity filters and a history-aware plan builder. It has no real GPS, microphone, HealthKit, Watch transport, OpenAI or payment processing. Demo data and generated routes must never enter production history or HealthKit.
 
-The native project is `LOGOUT.xcodeproj`, with iPhone bundle `studio-glhf.logout.LOGOUT` and dependent Watch bundle `studio-glhf.logout.LOGOUT.watchkitapp`. Both apps currently display Xcode starter content. The recorded Watch simulator build verifies target setup only. Existing iPhone app settings target 26.0 while project/test settings include 26.5; align these intentionally before claiming 26.0 test coverage. Preserve unrelated project edits and user-specific workspace settings.
+The native project is `LOGOUT.xcodeproj`, with iPhone bundle `studio-glhf.logout.LOGOUT` and dependent Watch bundle `studio-glhf.logout.LOGOUT.watchkitapp`. Both apps now have bilingual SwiftUI flows, a shared durable recording core, real GPS/HealthKit adapters and phone-initiated Watch coordination. The shared core has 22 passing tests, the SDK checks pass, and the integrated Xcode app build succeeds. Simulator UI execution and physical recording reliability have separate evidence requirements recorded in [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md). The deployment baseline remains 26.0; compilation against the installed 26.5 SDK does not prove 26.0 runtime coverage. Preserve unrelated project edits and user-specific workspace settings.
 
 The existing Watch design package provides static screen images and flow boards, not implemented SwiftUI or verified Figma behavior. Its excluded Smart Stack image is not a release requirement. Use the updated Watch plan for functional truth when an older image conflicts.
 
@@ -264,4 +264,4 @@ Release prerequisites: Apple Developer Program enrollment and signing, seller id
 
 Provide App Review a working account/demo route through paid features, reachable backend and clear instructions for phone-only and Watch-assisted testing. Explain background location/audio, Health writes, headphone requirements and the absence of independent Watch starts. Use original visuals and claims supported by device evidence. No submission while unresolved issues can lose workouts, duplicate Health records, misstate recording/saving, expose private data or generate unsafe coaching.
 
-The next implementation increment is Stage 0 followed by the durable phone recording core. Provider deployment, final unlimited subscription pricing, processor/legal configuration and final hardware acceptance remain explicit launch gates, not assumptions disguised as completed work.
+The first native recording increment is implemented. The next milestone is to complete the pending simulator evidence and physical recording/recovery gate in [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md), then connect the secure backend and paid AI experience in validated increments. Provider deployment, final unlimited subscription pricing, processor/legal configuration and final hardware acceptance remain explicit launch gates, not assumptions disguised as completed work.

@@ -6,12 +6,29 @@
 //
 
 import SwiftUI
+import HealthKit
+import WatchKit
 
 @main
 struct LOGOUTWatch_Watch_AppApp: App {
+    @WKExtensionDelegateAdaptor(WatchExtensionDelegate.self) var extensionDelegate
+    @StateObject private var model = WatchRunModel.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(model)
+                .preferredColorScheme(.dark)
         }
+    }
+}
+
+final class WatchExtensionDelegate: NSObject, WKExtensionDelegate {
+    func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
+        Task { @MainActor in WatchRunModel.shared.handleWorkoutLaunch() }
+    }
+
+    func handleActiveWorkoutRecovery() {
+        Task { @MainActor in WatchRunModel.shared.handleActiveRecovery() }
     }
 }

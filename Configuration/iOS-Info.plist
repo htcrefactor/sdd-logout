@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSMotionUsageDescription</key>
+	<string>LOGOUT uses motion measurements during a run to show your cadence when available.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>LOGOUT uses your running measurements to show workout statistics and your history.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>LOGOUT saves your completed runs and routes to Apple Health.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>LOGOUT uses your location during a run to measure distance, pace and your route.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+</dict>
+</plist>

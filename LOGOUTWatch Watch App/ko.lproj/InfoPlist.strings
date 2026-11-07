@@ -1,0 +1,5 @@
+"NSHealthShareUsageDescription" = "달리기 측정값을 사용하여 운동 통계와 기록을 보여줘요.";
+"NSHealthUpdateUsageDescription" = "완료한 달리기와 경로를 Apple 건강에 저장해요.";
+"NSLocationWhenInUseUsageDescription" = "달리는 동안 위치를 사용하여 거리, 페이스와 경로를 기록해요.";
+
+"NSMotionUsageDescription" = "LOGOUT은 달리는 동안 동작 데이터를 사용해 측정 가능한 케이던스를 표시합니다.";

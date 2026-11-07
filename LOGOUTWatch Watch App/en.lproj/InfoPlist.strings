@@ -1,0 +1,5 @@
+"NSHealthShareUsageDescription" = "LOGOUT uses running measurements to show workout statistics and history.";
+"NSHealthUpdateUsageDescription" = "LOGOUT saves your completed runs and routes to Apple Health.";
+"NSLocationWhenInUseUsageDescription" = "LOGOUT uses your location during a run to measure distance, pace and your route.";
+
+"NSMotionUsageDescription" = "LOGOUT uses motion measurements during a run to show your cadence when available.";
