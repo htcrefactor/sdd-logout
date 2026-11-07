@@ -109,7 +109,7 @@ Freshness belongs to each measurement, not just the connection. As an initial en
 
 ## Native architecture
 
-Keep the existing iOS 26 baseline and add a dependent SwiftUI watchOS 26 companion. The installed SDK and supported hardware matrix must be checked before release. The current project has iPhone app and test targets, no Watch target, and different deployment settings between the app and some test configurations; align those intentionally during project setup.
+Keep the existing iOS 26 baseline and a dependent SwiftUI watchOS 26 companion. On November 7, 2026, Xcode created the `LOGOUTWatch Watch App` target and its unit-test and UI-test targets inside the existing LOGOUT project. The Watch app and both Watch test targets use watchOS 26.0. The display name is LOGOUT, the bundle ID is `studio-glhf.logout.LOGOUT.watchkitapp`, and the companion is `studio-glhf.logout.LOGOUT`. Independent installation remains disabled. The starter app built successfully for the Apple Watch Series 11 (46mm) simulator destination. This verifies project setup only; the Watch UI and workout integration are not implemented yet. Check the installed SDK and supported hardware matrix before release, and align the existing iPhone test deployment settings intentionally.
 
 The initiating device and the recording owner are different concepts. Starting on iPhone does not mean the iPhone must own a Watch-assisted HealthKit workout.
 
@@ -168,14 +168,14 @@ Request only the location and Health data needed for enabled functionality. Show
 
 ## Xcode setup and release work
 
-1. Add **watchOS App for Existing iOS App** to the existing LOGOUT project. Name the target LOGOUTWatch, use SwiftUI and Swift, select the same development team and bind it to LOGOUT. Preserve the existing `studio-glhf` bundle namespace and the generated companion relationship. Configure it as dependent on the iPhone app. [Apple Watch project setup](https://developer.apple.com/documentation/watchos-apps/setting-up-a-watchos-project).
+1. Completed: added the watchOS **App** template using **Watch App for Existing iOS App**, bound to LOGOUT, with the same development team and generated companion relationship. Xcode named the target `LOGOUTWatch Watch App`. It remains dependent on the iPhone app. [Apple Watch project setup](https://developer.apple.com/documentation/watchos-apps/setting-up-a-watchos-project).
 2. Add shared Swift code for run identifiers, measurements, prescription stages, timing, commands and reconciliation. Keep this separate from SwiftUI screen state.
 3. Add HealthKit configuration and localized read/write purpose strings to the targets that use it. Add Watch workout-processing background support; Apple's workout guide also requires Audio background mode for workout haptics/audio. Use phone location/audio background capabilities only for implemented, legitimate uses. [Workout setup requirements](https://developer.apple.com/documentation/healthkit/running-workout-sessions).
 4. Add Korean and English string catalogs, Watch app assets and UI previews for supported sizes. Keep the Watch screen black; use appropriate app-icon contrast against the system's black launcher background.
 5. Add the iPhone Live Activity extension and configure Watch launch support for its activity type. Verify the final signed archive includes the companion with matching versions and correct entitlements.
 6. Use Apple Developer Program distribution signing for TestFlight/App Store release. Prepare Korean and English listing content, Watch screenshots, privacy policy and Health/location disclosures that match actual collection. Validate with the current App Store requirements before submission.
 
-The native project currently has user changes. Planning does not alter its project settings or source files.
+The existing iPhone configuration changes were preserved during Watch target creation. The generated Watch content is still the Xcode starter screen. The separate UI design package contains 30 screen images and five representative flow boards; these are static design artifacts rather than implemented native screens.
 
 ## Staged delivery and acceptance
 
