@@ -2,9 +2,11 @@
 
 Planning baseline: November 7, 2026, Asia/Seoul.
 
+The [production implementation plan](PRODUCTION-PLAN.md) is the master plan for release scope, architecture, security, payments and acceptance gates. This document specifies the dependent Watch app, its screens and its workout responsibilities. Production readiness requires verified real-device behavior; a successful simulator build is not evidence of reliable outdoor recording.
+
 LOGOUT Watch is an optional workout companion. The runner starts every run on iPhone, then uses the Watch to read measurements and pause, resume or finish the workout. Training plans, workout selection, coach selection, language preferences, account management and detailed history remain on iPhone. This preserves the existing product requirement that coached runs require an iPhone and headphones.
 
-The user selected **start on iPhone only** for the first release. Watch-first starts and independent Watch runs are outside this release. The Watch UI inherits Korean by default and the runner's English selection from iPhone. Voice behavior remains outside the current UI prototype phase.
+The user selected **start on iPhone only** for the first release. Watch-first starts and independent Watch runs are outside this release. The Watch UI inherits Korean by default and the runner's English selection from iPhone. The release includes real GPS, HealthKit read/write and AI coaching on iPhone. The Watch captures measurements and controls the run; it does not host the AI voice conversation. Live Activities and a Watch Smart Stack card are excluded from v1.
 
 ## Product decisions
 
@@ -13,7 +15,7 @@ The user selected **start on iPhone only** for the first release. Watch-first st
 | Start location | iPhone only; Watch has no Start button |
 | Watch availability | Optional; choose Watch-assisted or phone-only recording before starting |
 | Watch responsibilities | Local workout measurements, workout timing, stage transitions, haptics, pause/resume/finish and a short summary |
-| Phone responsibilities | Setup, plans, coach preference, network, future AI voice, phone GPS, main history and Live Activity |
+| Phone responsibilities | Setup, plans, coach preference, network, AI voice, phone GPS, main history and production account/payment flows |
 | Workout controls | Manual pause/resume; finish requires confirmation; no automatic pause in the first release |
 | Goal completion | Announce completion visually and with an optional haptic; recording continues until the runner finishes |
 | Appearance | Pure-black Watch backgrounds at all times, including daytime |
@@ -34,9 +36,9 @@ First-time Watch setup explains the purpose of Health access and presents the sy
 After the runner starts on iPhone:
 
 1. Phone creates a run identifier and sends the workout prescription, including the entire interval sequence, to Watch.
-2. Watch displays **달리기 준비 중 / Preparing your run**, initializes its workout and acknowledges the matching prescription revision.
-3. Phone and Watch use the acknowledged session start time for the countdown and timer. A launch callback alone does not count as successful recording.
-4. Watch opens Overview for free runs or Workout for structured runs. A failed start returns a clear retry or phone-only choice after resolving any pending Watch start.
+2. Watch displays **달리기 준비 중 / Preparing your run**, prepares its workout and acknowledges the matching prescription revision as Ready. Ready does not mean recording.
+3. Phone sends a stable commit ID. Watch persists the run/owner/commit state and acknowledges Running with its authoritative start time before either device claims recording. Duplicate commits do not create another session. A launch callback alone does not count as successful recording.
+4. Watch opens Overview for free runs or Workout for structured runs. After an uncertain commit, phone-only fallback remains blocked until reconciliation or an acknowledged abort resolves the pending Watch start.
 
 ### During a run
 
@@ -66,7 +68,13 @@ Keep stride length, ground contact time, vertical oscillation, detailed splits a
 
 Finish opens **달리기를 마칠까요? / Finish this run?**, with distance, running time, **종료하고 저장 / Finish & save**, and **돌아가기 / Go back**. Returning leaves the prior running or paused state unchanged. There is no discard action on Watch in this release.
 
-After confirmation, show Saving until the owning device confirms the save. The summary shows distance, running time, average pace and available average heart rate. Distinguish **워치에 저장됨 / Saved on Watch** from **iPhone 동기화 대기 중 / Waiting to sync with iPhone**. A failed save retains a recoverable local record and offers Retry. The runner can dismiss the summary without erasing that pending record.
+After confirmation, stop collection through the owning session and durably retain the run before attempting final HealthKit and phone synchronization. The summary shows distance, running time, average pace and available average heart rate. Track three independent outcomes:
+
+1. **워치에 저장됨 / Saved on Watch** means the LOGOUT record is durable on Watch. It does not claim a HealthKit save or delivery to iPhone.
+2. **건강 앱에 저장됨 / Saved to Health** appears only after successful HealthKit completion. Show **건강 앱 저장 대기 중 / Waiting to save to Health** or an actionable failure state when needed. Route saving has its own pending state because it follows workout saving.
+3. **iPhone 동기화 대기 중 / Waiting to sync with iPhone** remains until iPhone acknowledges durable receipt of the same run. Phone receipt does not establish that HealthKit has finished syncing across devices.
+
+A failed Health save or phone sync retains a recoverable local record and offers an appropriate Retry. Reconcile an ambiguous prior save before attempting another write. The runner can dismiss the summary without erasing its pending record. If local persistence itself fails, explicitly show that the run is not yet safely saved and preserve the in-memory record while recovery is attempted.
 
 Full history, feedback, plan adaptation and coach-specific totals are updated on iPhone once the same run is reconciled. Completing a prescribed workout counts once, even if completion is received through multiple delivery paths.
 
@@ -80,7 +88,7 @@ Use full-width native controls with generous targets, visible labels and safe-ar
 
 Always On preserves the layout while dimming secondary information and replacing bright fills with quieter outlines. Respect system privacy redaction and the user's Always On setting. Never promise per-second wrist-down rendering; the system reduces update frequency. Watches without Always On resume the same view when raised. [Apple Always On behavior](https://developer.apple.com/documentation/watchos-apps/designing-your-app-for-the-always-on-state/).
 
-Use optional, brief system haptics for acknowledged start/pause/resume/end, important phase transitions and goal completion. Avoid a vibration on every measurement or repeated connection flapping. Every haptic has a visible equivalent. The app does not take over the Watch speaker or microphone in this UI phase. [Apple haptics guidance](https://developer.apple.com/design/human-interface-guidelines/playing-haptics).
+Use optional, brief system haptics for acknowledged start/pause/resume/end, important phase transitions and goal completion. Avoid a vibration on every measurement or repeated connection flapping. Every haptic has a visible equivalent. AI audio and microphone capture remain on iPhone and its connected headphones; Watch haptics do not depend on an AI response or network connection. [Apple haptics guidance](https://developer.apple.com/design/human-interface-guidelines/playing-haptics).
 
 ## Bilingual labels and exceptional states
 
@@ -101,6 +109,9 @@ Phone preferences synchronize before each run and remain cached on Watch. Mid-ru
 | Watch still recording | 워치에서 기록 중 | Recording on Watch | Only shown while the local workout is actually active |
 | Reconnected | iPhone 다시 연결됨 | iPhone reconnected | Reconcile the existing run |
 | Save pending | 기록 저장 중 | Saving run | Do not claim successful save yet |
+| Local save complete | 워치에 저장됨 | Saved on Watch | LOGOUT record is durable locally; Health and phone states remain separate |
+| Health save pending | 건강 앱 저장 대기 중 | Waiting to save to Health | Retain the record for reconciliation and retry |
+| Health save complete | 건강 앱에 저장됨 | Saved to Health | HealthKit completion confirmed; route may still be pending |
 | Phone sync pending | iPhone 동기화 대기 중 | Waiting to sync with iPhone | Local save and remote sync are separate |
 | Save failure | 저장을 다시 시도해 주세요 | Try saving again | Retain local recovery data |
 | Full history | 자세한 기록은 iPhone에서 | See details on iPhone | No full history browser on Watch |
@@ -109,7 +120,7 @@ Freshness belongs to each measurement, not just the connection. As an initial en
 
 ## Native architecture
 
-Keep the existing iOS 26 baseline and a dependent SwiftUI watchOS 26 companion. On November 7, 2026, Xcode created the `LOGOUTWatch Watch App` target and its unit-test and UI-test targets inside the existing LOGOUT project. The Watch app and both Watch test targets use watchOS 26.0. The display name is LOGOUT, the bundle ID is `studio-glhf.logout.LOGOUT.watchkitapp`, and the companion is `studio-glhf.logout.LOGOUT`. Independent installation remains disabled. The starter app built successfully for the Apple Watch Series 11 (46mm) simulator destination. This verifies project setup only; the Watch UI and workout integration are not implemented yet. Check the installed SDK and supported hardware matrix before release, and align the existing iPhone test deployment settings intentionally.
+Keep the existing iOS 26 baseline and a dependent SwiftUI watchOS 26 companion. On November 7, 2026, Xcode created the `LOGOUTWatch Watch App` target and its unit-test and UI-test targets inside the existing LOGOUT project. The Watch app and both Watch test targets use watchOS 26.0. The display name is LOGOUT, the bundle ID is `studio-glhf.logout.LOGOUT.watchkitapp`, and the companion is `studio-glhf.logout.LOGOUT`. Independent installation remains disabled. The starter app built successfully for the Apple Watch Series 11 (46mm) simulator destination. This verifies project setup only. Both native apps still have starter content; their production screens, shared run models, workout services, HealthKit/GPS integration and AI connection are not implemented. Check the installed SDK and supported hardware matrix before release, and align the existing iPhone test deployment settings intentionally.
 
 The initiating device and the recording owner are different concepts. Starting on iPhone does not mean the iPhone must own a Watch-assisted HealthKit workout.
 
@@ -136,17 +147,17 @@ Apple documents that a suspended iPhone may receive cached Watch messages with s
 | Phone and Watch disconnect | Watch continues its local workout and controls. Phone marks Watch values stale/unavailable and keeps its own GPS buffer. No second primary session is created. |
 | Reconnection | Replace the invalid mirrored-session object, request a complete snapshot and reconcile by run/event IDs. Do not replay expired controls. |
 | Phone control is unacknowledged | Show Pending or Unconfirmed, stop coaching promptly for a pause/end request, and direct the runner to Watch controls. Never claim that Watch stopped without confirmation. |
-| Watch finishes while disconnected | Save on Watch, retain completion for later delivery and show phone-sync pending. |
+| Watch finishes while disconnected | Persist the local record, attempt its HealthKit save independently, retain completion for later delivery and show phone-sync pending. |
 | Process termination | Recover an active session where supported, reattach data source/delegates and reconstruct stage timing from durable events. A failed recovery is explicitly shown. |
 | Watch shuts down | Retain the phone GPS/time buffer under the same LOGOUT run ID. Show Watch recording unavailable. Do not silently migrate the HealthKit owner or create a duplicate workout. |
-| Owner cannot finalize HealthKit | Preserve the LOGOUT summary and mark Health sync pending or partial. Reconcile recovered owner data before attempting a replacement save. |
+| Owner cannot finalize HealthKit | Preserve the LOGOUT summary and mark Health save pending or partial. Reconcile recovered owner data before attempting a replacement save. |
 | Another workout app starts | Stop claiming LOGOUT is recording, stop local phase haptics, preserve the partial run and synchronize its ended state to iPhone. Never automatically restart or create another owner. |
 
 A disconnected iPhone mirror becomes invalid. If the primary workout remains active, the system attempts to reconnect and supplies a new mirror through the start handler. The application must treat this as the same run. [Apple reconnection behavior](https://developer.apple.com/documentation/healthkit/hkworkoutsessiondelegate/workoutsession(_:didDisconnectFromRemoteDeviceWithError:)).
 
 Apple permits one active workout session on Watch. Starting another workout can end the existing session with `errorAnotherWorkoutSessionStarted`; treat that as a recording interruption, not a network failure. [Apple workout session behavior](https://developer.apple.com/documentation/healthkit/hkworkoutsession).
 
-Control requests carry a unique ID, expected state revision and short expiry. Local Watch controls affect its primary workout immediately. Old resume/end requests must not execute against a different run after reconnection. Durable state records distinguish Running, Paused, Ending, Saved locally and Synced.
+Control requests carry a unique ID, expected state revision and short expiry. Local Watch controls affect its primary workout immediately. Old resume/end requests must not execute against a different run after reconnection. Durable state records distinguish Running, Paused and Ending. Local persistence, Health workout save, Health route save and phone synchronization each have independent pending, successful and failed states. Timing uses the owner's monotonic duration within a boot and persisted start/pause/resume events; recover through the Health session and journal instead of counting timer callbacks or subtracting wall-clock timestamps. Clock skew or uncertain observation time prevents timely coaching claims.
 
 ### Distance and route policy
 
@@ -156,15 +167,13 @@ Never add phone and Watch cumulative distances. During a Watch-link gap, the pho
 
 If the Watch owner is permanently unavailable, the retained phone route supports a recoverable LOGOUT run summary. Automatic HealthKit ownership migration remains deferred until an exactly-once recovery path is demonstrated. Routes can finish synchronizing after a workout, so history supports a route-syncing state. [Apple route handling](https://developer.apple.com/documentation/healthkit/reading-route-data).
 
-## Live Activity and privacy
+## Privacy and excluded surfaces
 
-The iPhone Live Activity remains part of the product. Its compact Watch Smart Stack presentation shows workout state and one or two useful values, and opens the active Watch app when configured. It does not replace the native Watch recording session. Apple budgets updates to the Watch, so this glanceable presentation must tolerate delayed delivery and avoid presenting stale physiological data as live. [Live Activities on Apple Watch](https://developer.apple.com/videos/play/wwdc2024/10068/).
-
-Use the active Watch app for local measurements and controls during a Watch-owned run. The Smart Stack view is a way back into the session, not another workout owner. Avoid duplicate alerting from the Live Activity and the Watch's local phase haptic.
+Live Activities and a Watch Smart Stack card are excluded from v1. Do not add an ActivityKit extension, Smart Stack presentation or update pipeline for this release. The active Watch app provides local measurements and controls. Background workout recording and phone location handling must pass their own device tests without either excluded surface.
 
 Keep the Watch free of permanent OpenAI credentials, independent AI requests and voice recordings. Store only the current prescription, necessary preferences, active-run journal and pending synchronization data under system data protection. Keep pending data until the phone acknowledges durable receipt, then remove raw temporary transport data. Keep a compact last-run summary until replaced; full history lives on iPhone. An account or run deletion on phone queues deletion of the corresponding Watch cache for the next connection, with pending status if offline. HealthKit deletion remains a distinct, explicit user choice.
 
-Request only the location and Health data needed for enabled functionality. Show unavailable readings without inferring the reason from HealthKit's privacy-preserving read behavior. No health values belong in analytics, crash breadcrumbs or public screenshots by default. Audio and transcript retention remain controlled by the future iPhone voice feature.
+Request only the location and Health data needed for enabled functionality, using localized purpose strings and independent read/write authorization handling. Empty HealthKit reads do not prove denial. Write only LOGOUT-owned workouts, routes and supported measured or system-calculated samples; do not invent missing heart rate, energy, cadence or other HealthKit values, and do not rewrite imported workouts. Use the owning workout builder's collection instead of separately duplicating its samples. A denied Health write leaves the local run usable and clearly marked as not saved to Health. No health values belong in analytics, crash breadcrumbs or public screenshots by default. Audio and transcript consent, retention and deletion follow the production plan's iPhone/backend policy. [Health authorization behavior](https://developer.apple.com/documentation/healthkit/hkauthorizationstatus), [workout and route saving](https://developer.apple.com/documentation/healthkit/creating-a-workout-route).
 
 ## Xcode setup and release work
 
@@ -172,7 +181,7 @@ Request only the location and Health data needed for enabled functionality. Show
 2. Add shared Swift code for run identifiers, measurements, prescription stages, timing, commands and reconciliation. Keep this separate from SwiftUI screen state.
 3. Add HealthKit configuration and localized read/write purpose strings to the targets that use it. Add Watch workout-processing background support; Apple's workout guide also requires Audio background mode for workout haptics/audio. Use phone location/audio background capabilities only for implemented, legitimate uses. [Workout setup requirements](https://developer.apple.com/documentation/healthkit/running-workout-sessions).
 4. Add Korean and English string catalogs, Watch app assets and UI previews for supported sizes. Keep the Watch screen black; use appropriate app-icon contrast against the system's black launcher background.
-5. Add the iPhone Live Activity extension and configure Watch launch support for its activity type. Verify the final signed archive includes the companion with matching versions and correct entitlements.
+5. Verify the final signed archive includes the dependent companion with matching versions, bundle relationships and correct entitlements. No Live Activity or Smart Stack extension is part of v1. Keep permanent OpenAI credentials and production payment secrets out of both app bundles.
 6. Use Apple Developer Program distribution signing for TestFlight/App Store release. Prepare Korean and English listing content, Watch screenshots, privacy policy and Health/location disclosures that match actual collection. Validate with the current App Store requirements before submission.
 
 The existing iPhone configuration changes were preserved during Watch target creation. The generated Watch content is still the Xcode starter screen. The separate UI design package contains 30 screen images and five representative flow boards; these are static design artifacts rather than implemented native screens.
@@ -181,25 +190,26 @@ The existing iPhone configuration changes were preserved during Watch target cre
 
 | Stage | Deliverable | Exit criteria |
 | --- | --- | --- |
-| 1. UI flow prototype | Separate Watch-sized preview alongside the existing phone prototype, sharing simulated run state. Include waiting, preparing, all three run views, controls, pause, finish, summary and failure states. | Korean/English flows work; start exists only on phone; no voice or real sensors implied. Existing iPhone layout remains unchanged. |
-| 2. Native feasibility test | Minimal Watch target and phone launch, primary/mirrored sessions, timestamps, pause/end and one saved workout. | Physical devices demonstrate handshake, locked-phone latency, local Watch stage timing and reconnect behavior. Results decide which real-time coaching promises are feasible. |
-| 3. Production workout integration | Durable state, source reconciliation, missing-data UI, local haptics, summary sync, localization and Live Activity. | All functional criteria below pass across the supported hardware and OS matrix. |
-| 4. Release validation | Battery profiling, extended outdoor runs, accessibility, privacy, signed TestFlight build and store materials. | No unresolved data loss, duplicate workout, false recording/saving state or stale-data coaching issue. |
+| 1. Shared recording foundation | Typed run/measurement/prescription models, an owner-aware state machine, durable run journal, acknowledged commands and explicit save states. Use deterministic fixtures only in previews and automated tests. | Tests cover owner selection, uncertain startup, repeated commands, delayed samples, pause timing and replay without duplicate completion. Production paths cannot expose simulated measurements. |
+| 2. Physical-device reliability gate | Real phone GPS, phone-only HealthKit sessions, phone-initiated Watch sessions, mirroring, local stages/haptics and one workout/route save path. Minimal native screens expose actual state for testing. | Physical iPhone and Watch demonstrate locked-phone recording, sample-age reporting, startup handshake, disconnection/reconnection, crash recovery and Health read/write failure handling. Document measured limits before promising timely AI guidance. |
+| 3. Production screens and reconciliation | Implement the specified bilingual Watch UI and matching iPhone flows over real services, source reconciliation, local summaries, independent Health/phone save status and accessible controls. | All applicable functional criteria below pass; completed runs reconcile once into history, plan progress and coach totals. No UI requires a live network for recording. |
+| 4. iPhone AI integration | Feed only sufficiently fresh, consented measurements to the secure iPhone/backend coaching path. Watch remains a measurement/control companion. | AirPods, locked-phone delivery, interruptions and network-loss tests pass. Missing/stale readings cannot produce factual coaching claims, and AI failure never stops recording. |
+| 5. Release validation | Battery profiling, extended outdoor runs, accessibility, privacy/deletion, signed TestFlight builds, regression testing and store materials. | No unresolved data loss, duplicate workout, false recording/saving state or stale-data coaching issue. The master production plan's security, account and payment gates also pass. |
 
 Functional acceptance:
 
-- Start only on iPhone; Watch starts the matching session exactly once after readiness acknowledgement. Phone-only fallback is explicit and cannot race a late Watch startup.
+- Start only on iPhone; Watch persists and acknowledges the matching committed Running state before recording is shown. Readiness alone is insufficient. Phone-only fallback is explicit and cannot race a late Watch startup. Exactly once refers to a deduplicated logical run, not an atomic distributed guarantee.
 - The runner can read state, distance and workout phase while moving, and pause with Controls then Pause without taking out the phone. Finish always requires confirmation.
 - Running time and stage timing freeze together on pause. Repeated pause/resume from both devices does not produce drift or contradictory states.
 - A timed phase changes on Watch while the phone is locked or temporarily disconnected. Goal completion does not silently end recording.
 - Missing and stale measurements never become zero or fabricated values. Data age and connection state are independently testable.
 - Completing one run yields one LOGOUT history entry, one plan completion and at most one finalized HealthKit workout. Replayed messages and repeated Save do not duplicate them.
 - During temporary link loss, Watch controls and local recording continue; reconnect restores one session. Stale commands are ignored and provisional distance is reconciled without double counting.
-- Health save failure, phone sync failure, Watch shutdown and process termination preserve recoverable data and truthful status.
+- Local persistence failure, Health workout/route save failure, phone sync failure, Watch shutdown and process termination have separately testable, truthful states. Recoverable data is retained, and an ambiguous save is reconciled before retrying.
 - Starting another workout app ends LOGOUT's recording state and phase haptics, preserves the partial run and reconciles the ending with iPhone without automatic restart.
 - Korean and English labels fit the smallest supported Watch and Ultra at supported text sizes. VoiceOver identifies controls, units and state; color is not the sole status indicator.
-- Always On and wrist-up transitions retain the correct screen and state. Local workout operation is independent of Live Activity refresh frequency.
+- Always On and wrist-up transitions retain the correct screen and state. Local workout operation and locked-phone GPS pass without a Live Activity or Smart Stack card.
 
 Hardware matrix: a smaller compatible Watch and an Ultra, the oldest supported OS combination and the current release, a physical iPhone, and AirPods Pro. Include outdoor GPS, wrist down, phone locked, debugger detached, music on/off, calls/audio interruptions, wet-hand interaction, low battery, permission changes, connection loss and network loss. Run a two-hour normal session and a four-hour endurance test; record sample-age distributions, lost/late events, battery drain, thermal state and save/sync outcomes. Set release battery claims only from those measurements.
 
-Immediate next implementation increment: the Watch UI prototype with simulated phone-start and failure states. Native background reliability is a separate mandatory gate before connecting the future AI coach to Watch-triggered guidance.
+Immediate next implementation increment: establish the shared recording state, durable journal and permission model, then connect a minimal real GPS/HealthKit flow on the existing native targets. Exercise phone-only and Watch-owned runs on physical devices before expanding the full screens or enabling measurement-triggered AI coaching. The existing web prototype and Watch design boards guide UI implementation; they are not proof of native capability or production reliability.
